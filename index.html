@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گردونه شانس</title>
+    <script src="https://tapi.bale.ai/miniapp.js?3"></script>
+    <style>
+        body {
+            font-family: 'BlinkMacSystemFont', -apple-system, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+            background-color: var(--bg-color, #ffffff);
+            color: var(--text-color, #000000);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        #app-container {
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+            background-color: var(--secondary-bg-color, #f0f0f0);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            color: var(--accent-text-color, #1e90ff);
+        }
+        #wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 20px auto;
+        }
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid var(--accent-text-color, #1e90ff);
+            background-color: #e0e0e0;
+            position: relative;
+            transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+        .prize-slice {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 50%;
+            height: 50%;
+            transform-origin: 0% 100%;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            border-right: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        #spinner-button {
+            background-color: var(--button-color, #1e90ff);
+            color: var(--button-text-color, #ffffff);
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            margin-top: 20px;
+        }
+        #spinner-button:hover {
+            background-color: var(--link-color, #007bff);
+        }
+        #spinner-button:disabled {
+            background-color: var(--hint-color, #888888);
+            cursor: not-allowed;
+            transform: none;
+        }
+        #result-text {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <h1>گردونه شانس روزانه</h1>
+        <div id="wheel-container">
+            <div id="wheel"></div>
+        </div>
+        <p id="result-text">برای چرخاندن گردونه، دکمه زیر را فشار دهید.</p>
+        <button id="spinner-button" onclick="spinWheel()">بچرخان</button>
+    </div>
+
+    <script>
+        const rewards = [
+            { id: 1, text: "500 طلا 💰", value: 500, type: 'gold' },
+            { id: 2, text: "1000 غذا 🍖", value: 1000, type: 'food' },
+            { id: 3, text: "50 الماس 💎", value: 50, type: 'diamond' },
+            { id: 4, text: "2000 بلوک 🧱", value: 2000, type: 'blocks' },
+            { id: 5, text: "5 JNG 🪙", value: 5, type: 'jng' },
+            { id: 6, text: "هیچی 😔", value: 0, type: 'none' }
+        ];
+
+        const wheel = document.getElementById('wheel');
+        const spinnerButton = document.getElementById('spinner-button');
+        const resultText = document.getElementById('result-text');
+        
+        let spinResult = null;
+
+        // تابع برای رندر کردن گردونه
+        function renderWheel() {
+            const sliceCount = rewards.length;
+            const sliceDeg = 360 / sliceCount;
+            rewards.forEach((reward, index) => {
+                const slice = document.createElement('div');
+                slice.className = 'prize-slice';
+                slice.style.transform = `rotate(${sliceDeg * index}deg) skewY(-60deg)`;
+                slice.style.backgroundColor = `hsl(${sliceDeg * index}, 70%, 50%)`;
+                slice.style.color = 'white';
+                slice.style.fontSize = '12px';
+                slice.style.fontWeight = 'bold';
+                slice.style.padding = '5px';
+                
+                const textSpan = document.createElement('span');
+                textSpan.style.transform = `skewY(60deg) rotate(${sliceDeg / 2}deg)`;
+                textSpan.innerText = reward.text;
+                slice.appendChild(textSpan);
+                wheel.appendChild(slice);
+            });
+        }
+        
+        // تابع برای تعیین تم
+        function setTheme(isDark) {
+            const root = document.documentElement;
+            if (isDark) {
+                root.style.setProperty('--bg-color', window.Bale.WebApp.themeParams.bg_color || '#121212');
+                root.style.setProperty('--text-color', window.Bale.WebApp.themeParams.text_color || '#e0e0e0');
+                root.style.setProperty('--secondary-bg-color', window.Bale.WebApp.themeParams.secondary_bg_color || '#1e1e1e');
+                root.style.setProperty('--accent-text-color', window.Bale.WebApp.themeParams.accent_text_color || '#bb86fc');
+                root.style.setProperty('--button-color', window.Bale.WebApp.themeParams.button_color || '#bb86fc');
+                root.style.setProperty('--button-text-color', window.Bale.WebApp.themeParams.button_text_color || '#000000');
+                root.style.setProperty('--link-color', window.Bale.WebApp.themeParams.link_color || '#2196f3');
+                root.style.setProperty('--hint-color', window.Bale.WebApp.themeParams.hint_color || '#999999');
+            } else {
+                root.style.setProperty('--bg-color', window.Bale.WebApp.themeParams.bg_color || '#ffffff');
+                root.style.setProperty('--text-color', window.Bale.WebApp.themeParams.text_color || '#000000');
+                root.style.setProperty('--secondary-bg-color', window.Bale.WebApp.themeParams.secondary_bg_color || '#f0f0f0');
+                root.style.setProperty('--accent-text-color', window.Bale.WebApp.themeParams.accent_text_color || '#1e90ff');
+                root.style.setProperty('--button-color', window.Bale.WebApp.themeParams.button_color || '#1e90ff');
+                root.style.setProperty('--button-text-color', window.Bale.WebApp.themeParams.button_text_color || '#ffffff');
+                root.style.setProperty('--link-color', window.Bale.WebApp.themeParams.link_color || '#007bff');
+                root.style.setProperty('--hint-color', window.Bale.WebApp.themeParams.hint_color || '#888888');
+            }
+        }
+        
+        // تابع اصلی چرخاندن گردونه
+        function spinWheel() {
+            spinnerButton.disabled = true;
+            resultText.innerText = "گردونه در حال چرخش است...";
+
+            // به سرور بات اطلاع بده که گردونه چرخیده
+            window.Bale.WebApp.sendData(JSON.stringify({
+                action: 'spin_request',
+                user_id: window.Bale.WebApp.initDataUnsafe.user.id
+            }));
+            
+            // در حالت واقعی، اینجا باید منتظر پاسخ سرور باشیم که نتیجه چی بوده
+            // اما برای این مثال ساده، از یک نتیجه تصادفی استفاده می کنیم
+            const randomIndex = Math.floor(Math.random() * rewards.length);
+            const selectedReward = rewards[randomIndex];
+            spinResult = selectedReward;
+
+            const deg = 360 * 5 + (360 / rewards.length) * (rewards.length - randomIndex - 0.5);
+            wheel.style.transform = `rotate(-${deg}deg)`;
+
+            wheel.addEventListener('transitionend', () => {
+                setTimeout(() => {
+                    showResult();
+                }, 500);
+            }, { once: true });
+        }
+
+        function showResult() {
+            resultText.innerText = `تبریک! شما برنده ${spinResult.text} شدید! 🎉`;
+            spinnerButton.style.display = 'none';
+        }
+
+        // بررسی اینکه آیا مینی‌اپ در بله پشتیبانی میشه یا نه 
+        if (!window.Bale.WebApp.isMiniAppSupported) {
+            document.getElementById('app-container').innerHTML = `
+                <p>⚠️ نسخه اپلیکیشن بله شما قدیمی است. لطفاً برای استفاده از این قابلیت، آن را به‌روزرسانی کنید. </p>
+            `;
+        } else {
+            // وقتی مینی‌اپ آماده نمایش شد، به بله اطلاع بده 
+            window.Bale.WebApp.ready();
+            
+            // تنظیم تم بر اساس تم کاربر 
+            setTheme(window.Bale.WebApp.isDarkMode);
+            
+            // هر وقت تم کاربر عوض شد، تم مینی‌اپ هم عوض شه 
+            window.Bale.WebApp.onEvent('themeChanged', () => {
+                setTheme(window.Bale.WebApp.isDarkMode);
+            });
+            
+            renderWheel();
+        }
+    </script>
+</body>
+</html>
